@@ -38,7 +38,7 @@ Open **Tools → Auto Power Off**.
 | Setting | What it does |
 |---|---|
 | **Auto Power Off** | On or Off. Turning it off keeps your chosen time for next time. |
-| **Power off after** | How long the device stays asleep before it powers off: 15 minutes, 30 minutes, 1 hour, 2, 4 or 8 hours. |
+| **Power off after** | How long the device stays asleep before it powers off: 15 or 30 minutes; 1, 2, 4, 8 or 12 hours; or 1 or 2 days (24 or 48 hours). |
 
 **Left / Right** change a setting, **A** saves, **B** leaves without saving.
 

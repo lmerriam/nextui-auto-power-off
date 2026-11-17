@@ -69,7 +69,7 @@ presses() { printf '%s\n' "$@" > "$STUB/list-script"; rm -f "$STUB/list-count" "
 launch() { (cd "$PAK" && JQ_BIN="$JQ" "$SHELL_UNDER_TEST" ./launch.sh) >/dev/null 2>&1; }
 setting() { cat "$STATE/$1" 2>/dev/null; }
 
-# Index of a time in the list: 900 1800 3600 7200 14400 28800.
+# Index of a time in the list: 900 1800 3600 7200 14400 28800 43200 86400 172800.
 T2H=3
 
 echo "settings screen"
@@ -144,6 +144,22 @@ cp "$PAK/common.sh" "$STATE/common.sh"
 mkdir -p "$(dirname "$PRE")"; cp "$PAK/hooks/pre-sleep.sh" "$PRE"
 (cd "$T" && "$SHELL_UNDER_TEST" "$PRE") >/dev/null 2>&1
 eq "+3600" "$(tail -n 1 "$APO_RTC_DIR/wakealarm")" "test time arms 1 hour"
+teardown
+
+setup
+presses "2|."
+launch
+eq '["15 minutes","30 minutes","1 hour","2 hours","4 hours","8 hours","12 hours","24 hours","48 hours"]' \
+	"$("$JQ" -c '.items[1].options' "$STUB/list-input-1.json")" "times on offer"
+teardown
+
+setup
+presses "0|.items[0].selected=1 | .items[1].selected=8"
+launch
+eq 172800 "$(setting timeout_secs)" "saving 48 hours"
+eq 1 "$(grep -c 'powers off after 48 hours asleep' "$STUB/presenter-log")" "48 hours notice"
+(cd "$T" && "$SHELL_UNDER_TEST" "$PRE") >/dev/null 2>&1
+eq "+172800" "$(tail -n 1 "$APO_RTC_DIR/wakealarm")" "alarm armed for 48 hours"
 teardown
 
 echo "sleep hooks"

@@ -81,7 +81,7 @@ apo_timeout() {
 
 # The times on offer, in seconds, in the order the settings screen lists
 # them, with their labels.
-APO_TIMEOUTS="900 1800 3600 7200 14400 28800"
+APO_TIMEOUTS="900 1800 3600 7200 14400 28800 43200 86400 172800"
 apo_label() {
 	case "$1" in
 		900) echo "15 minutes" ;;
@@ -90,6 +90,9 @@ apo_label() {
 		7200) echo "2 hours" ;;
 		14400) echo "4 hours" ;;
 		28800) echo "8 hours" ;;
+		43200) echo "12 hours" ;;
+		86400) echo "24 hours" ;;
+		172800) echo "48 hours" ;;
 		*) echo "$(( $1 / 60 )) minutes" ;;
 	esac
 }
