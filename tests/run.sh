@@ -39,6 +39,9 @@ setup() {
 	mkdir -p "$APO_RTC_DIR" "$APO_TMP" "$STUB" "$SHARED_USERDATA_PATH/.minui" "$SYSTEM_PATH/bin"
 	: > "$APO_RTC_DIR/wakealarm"
 	echo sunxi-rtc > "$APO_RTC_DIR/name"
+	# The RTC's own time, far from the system clock's, so a hook that reads
+	# the wrong clock fails.
+	echo 1000000 > "$APO_RTC_DIR/since_epoch"
 
 	PAK="$SDCARD_PATH/Tools/$PLATFORM/Auto Power Off.pak"
 	mkdir -p "$PAK/bin/$PLATFORM"
@@ -147,6 +150,8 @@ echo "sleep hooks"
 
 # Fire the hooks the way NextUI's suspend script does.
 hook() { (cd "$T" && "$SHELL_UNDER_TEST" "$1") >/dev/null 2>&1; }
+# rtc_at SECONDS: the RTC reads that long after the time the alarm was set for.
+rtc_at() { echo $(( $(cut -d' ' -f2 "$STATE/alarm_target") + $1 )) > "$APO_RTC_DIR/since_epoch"; }
 
 setup
 presses "0|.items[0].selected=1 | .items[1].selected=0"
@@ -154,9 +159,10 @@ launch
 echo "/mnt/SDCARD/Roms/Game.gba" > "$SHARED_USERDATA_PATH/.minui/auto_resume.txt"
 hook "$PRE"
 eq "+900" "$(tail -n 1 "$APO_RTC_DIR/wakealarm")" "alarm armed for 15 minutes"
-exists "$STATE/alarm_target"
+eq "rtc 1000900" "$(cat "$STATE/alarm_target")" "target measured on the RTC"
 exists "$STATE/auto_resume.bak"
 # The user wakes it early: nothing happens.
+rtc_at -600
 hook "$POST"
 absent "$T/shutdown"
 absent "$STATE/alarm_target"
@@ -167,8 +173,9 @@ presses "0|.items[0].selected=1 | .items[1].selected=0"
 launch
 echo "/mnt/SDCARD/Roms/Game.gba" > "$SHARED_USERDATA_PATH/.minui/auto_resume.txt"
 hook "$PRE"
-# The alarm wakes it: the emulator has dropped the resume pointer by now.
-echo $(( $(date +%s) - 5 )) > "$STATE/alarm_target"
+# The alarm wakes it, on time by the RTC whatever the system clock says.
+# The emulator has dropped the resume pointer by now.
+rtc_at 3
 rm -f "$SHARED_USERDATA_PATH/.minui/auto_resume.txt"
 hook "$POST"
 eq "poweroff_next flag=set" "$(cat "$T/shutdown" 2>/dev/null)" "powers off the way NextUI does"
@@ -185,12 +192,33 @@ launch
 echo "/mnt/SDCARD/Roms/Game.gba" > "$SHARED_USERDATA_PATH/.minui/auto_resume.txt"
 hook "$PRE"
 # The alarm never woke it; the user does, long after the alarm time.
-echo $(( $(date +%s) - 3600 )) > "$STATE/alarm_target"
+rtc_at 3600
 hook "$POST"
 absent "$T/shutdown"
 absent "$STATE/alarm_target"
 absent "$STATE/auto_resume.bak"
 eq 1 "$(grep -c "alarm didn't wake the device" "$LOGS_PATH/autopoweroff.log")" "late wake logged"
+teardown
+
+setup
+presses "0|.items[0].selected=1 | .items[1].selected=0"
+launch
+# An RTC that doesn't report its time: the system clock is used instead.
+rm -f "$APO_RTC_DIR/since_epoch"
+hook "$PRE"
+eq sys "$(cut -d' ' -f1 "$STATE/alarm_target")" "falls back to the system clock"
+echo "sys $(( $(date +%s) - 3 ))" > "$STATE/alarm_target"
+hook "$POST"
+eq "poweroff_next flag=set" "$(cat "$T/shutdown" 2>/dev/null)" "powers off on the system clock"
+teardown
+
+setup
+presses "0|.items[0].selected=1 | .items[1].selected=0"
+launch
+# A target left by an earlier build: a bare system-clock time.
+echo $(( $(date +%s) - 3 )) > "$STATE/alarm_target"
+hook "$POST"
+eq "poweroff_next flag=set" "$(cat "$T/shutdown" 2>/dev/null)" "reads an earlier build's target"
 teardown
 
 setup

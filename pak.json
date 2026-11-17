@@ -1,12 +1,13 @@
 {
   "name": "Auto Power Off",
-  "version": "v1.0.0",
+  "version": "v1.0.1",
   "type": "TOOL",
   "description": "Turns your device fully off after it has been asleep for a time you choose. Running games resume where you left off.",
   "author": "lmerriam",
   "repo_url": "https://github.com/lmerriam/nextui-auto-power-off",
   "release_filename": "Auto.Power.Off.pak.zip",
   "changelog": {
+    "v1.0.1": "Times the sleep on the device's hardware clock, so it works the same whatever the system clock does during sleep.",
     "v1.0.0": "First release: turn the device off after a chosen time asleep, from 15 minutes to 8 hours, with games resuming where you left off. For the TrimUI Brick and Smart Pro."
   },
   "screenshots": [],

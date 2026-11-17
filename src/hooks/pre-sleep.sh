@@ -39,9 +39,10 @@ echo 0 > "$APO_WAKEALARM" 2>/dev/null
 # "+N" = N seconds from the RTC's current time, so RTC/system clock offset
 # doesn't matter.
 if echo "+$timeout" > "$APO_WAKEALARM" 2>/dev/null; then
-	echo $(( $(date +%s) + timeout )) > "$APO_TARGET_FILE"
+	clock=$(apo_clock)
+	echo "$clock $(( $(apo_now "$clock") + timeout ))" > "$APO_TARGET_FILE"
 	sync
-	apo_log "pre-sleep: alarm armed for ${timeout}s (rtc=$(cat "$APO_WAKEALARM" 2>/dev/null)) game=${game:-none}"
+	apo_log "pre-sleep: alarm armed for ${timeout}s (wakealarm=$(cat "$APO_WAKEALARM" 2>/dev/null) clock=$clock rtc=$(apo_now rtc) sys=$(apo_now sys)) game=${game:-none}"
 else
 	rm -f "$APO_TARGET_FILE"
 	apo_log "pre-sleep: kernel rejected wake alarm, not armed"

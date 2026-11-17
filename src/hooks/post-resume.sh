@@ -12,10 +12,17 @@
 . "$USERDATA_PATH/.autopoweroff/common.sh" || exit 0
 
 [ -f "$APO_TARGET_FILE" ] || exit 0
-target=$(cat "$APO_TARGET_FILE" 2>/dev/null)
-now=$(date +%s)
+# "<clock> <seconds>"; a bare number is the system clock (earlier builds).
+read -r clock target < "$APO_TARGET_FILE" 2>/dev/null
+if [ -z "$target" ]; then target=$clock; clock=sys; fi
+now=$(apo_now "$clock")
 apo_clear_alarm
 case "$target" in ''|*[!0-9]*) exit 0 ;; esac
+if [ -z "$now" ]; then
+	apo_log "post-resume: can't read the $clock clock, staying on"
+	rm -f "$APO_RESUME_BAK"
+	exit 0
+fi
 
 if [ "$now" -lt $(( target - APO_TOLERANCE )) ]; then
 	apo_log "post-resume: user wake $(( target - now ))s before alarm, staying on"

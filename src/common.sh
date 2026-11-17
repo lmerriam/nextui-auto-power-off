@@ -18,7 +18,7 @@
 APO_STATE_DIR="$USERDATA_PATH/.autopoweroff"
 APO_ENABLED_FILE="$APO_STATE_DIR/enabled"        # 1 = on, 0 = off
 APO_TIMEOUT_FILE="$APO_STATE_DIR/timeout_secs"   # chosen time, kept while off
-APO_TARGET_FILE="$APO_STATE_DIR/alarm_target"    # system epoch when the alarm should fire
+APO_TARGET_FILE="$APO_STATE_DIR/alarm_target"    # "<clock> <seconds>": when the alarm should fire
 APO_RESUME_BAK="$APO_STATE_DIR/auto_resume.bak"  # copy of NextUI's resume pointer
 APO_LOG="$LOGS_PATH/autopoweroff.log"
 APO_HOOK_NAME="autopoweroff.sh"
@@ -98,6 +98,26 @@ apo_label() {
 # after a set time depends on.
 apo_supported() {
 	[ -w "$APO_WAKEALARM" ]
+}
+
+# The timer measures time on the RTC itself, the clock the wake alarm runs
+# on, when the RTC reports it. The system clock is only a fallback: some
+# kernels don't move it forward by the time spent asleep, and then a wake by
+# the alarm would look like an early wake by the user.
+#
+# apo_clock: "rtc" or "sys", whichever this device can use.
+apo_clock() {
+	v=$(cat "$APO_RTC_DIR/since_epoch" 2>/dev/null)
+	case "$v" in ''|*[!0-9]*) echo sys ;; *) echo rtc ;; esac
+}
+
+# apo_now CLOCK: the time in seconds on that clock, or nothing if unreadable.
+apo_now() {
+	case "$1" in
+		rtc) v=$(cat "$APO_RTC_DIR/since_epoch" 2>/dev/null) ;;
+		*) v=$(date +%s) ;;
+	esac
+	case "$v" in ''|*[!0-9]*) ;; *) echo "$v" ;; esac
 }
 
 apo_clear_alarm() {
